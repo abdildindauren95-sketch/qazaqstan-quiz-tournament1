@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, LogIn, Chrome, Apple, Loader2, ShieldCheck, User as UserIcon } from 'lucide-react';
-import { loginWithGoogle, loginWithApple } from '../services/firebase';
+import { X, LogIn, Chrome, Apple, Loader2, ShieldCheck, User as UserIcon, AlertCircle } from 'lucide-react';
+import { loginWithGoogle, loginWithApple, isFirebaseConfigured } from '../services/firebase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -13,6 +13,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async (provider: 'google' | 'apple') => {
+    if (!isFirebaseConfigured) {
+      setError('Firebase конфигурациясы табылмады. Әкімшіге хабарласыңыз немесе .env файлын тексеріңіз.');
+      return;
+    }
     setLoading(provider);
     setError(null);
     try {
@@ -21,7 +25,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Кіру кезінде қате орын алды. Firebase конфигурациясын тексеріңіз.');
+      if (err.code === 'auth/configuration-not-found') {
+        setError('Қате: Firebase Authentication бапталмаған. \n\nШешімі: \n1. Firebase Console-да Google/Apple провайдерлерін қосыңыз. \n2. Осы доменді "Authorized domains" тізіміне қосыңыз.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        const currentDomain = window.location.hostname;
+        setError(`Қате: Бұл доменге рұқсат берілмеген. \n\nFirebase Console-да мына доменді "Authorized domains" тізіміне қосыңыз: \n\n${currentDomain}\n\nСондай-ақ, "ais-pre-..." доменін қосуды ұмытпаңыз.`);
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Қате: Бұл кіру әдісі Firebase-те рұқсат етілмеген. Sign-in method бөлімін тексеріңіз.');
+      } else {
+        setError(err.message || 'Кіру кезінде қате орын алды.');
+      }
     } finally {
       setLoading(null);
     }
@@ -66,6 +79,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
             {/* Body */}
             <div className="p-8 space-y-4">
+              {!isFirebaseConfigured && (
+                <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-xs text-amber-400">
+                  <AlertCircle className="shrink-0" size={16} />
+                  <p>
+                    <strong>Firebase бапталмаған:</strong> Авторизация функциялары уақытша қолжетімсіз. 
+                    Қонақ ретінде жалғастыра аласыз.
+                  </p>
+                </div>
+              )}
+
               {error && (
                 <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-400 text-center">
                   {error}
@@ -74,8 +97,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
               <button
                 onClick={() => handleLogin('google')}
-                disabled={!!loading}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white p-4 text-sm font-bold text-black transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                disabled={!!loading || !isFirebaseConfigured}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white p-4 text-sm font-bold text-black transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
               >
                 {loading === 'google' ? (
                   <Loader2 className="animate-spin" size={20} />
@@ -87,8 +110,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
               <button
                 onClick={() => handleLogin('apple')}
-                disabled={!!loading}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-black border border-white/20 p-4 text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                disabled={!!loading || !isFirebaseConfigured}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-black border border-white/20 p-4 text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
               >
                 {loading === 'apple' ? (
                   <Loader2 className="animate-spin" size={20} />
