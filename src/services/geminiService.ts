@@ -1,7 +1,11 @@
 import { GoogleGenAI, Type, ThinkingLevel, GenerateContentResponse } from "@google/genai";
 import { Category, Question } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+// Helper to get AI instance with specific key
+const getAI = (apiKey?: string) => {
+  const key = apiKey || localStorage.getItem('gemini_api_key') || process.env.GEMINI_API_KEY || "";
+  return new GoogleGenAI({ apiKey: key });
+};
 
 const CHAT_SYSTEM_INSTRUCTION = `Сіз - "Qazaqstan Quiz Assistant" атты кәсіби Қазақстан тарихы сарапшысы және мұғалімісіз.
 Сіздің мақсатыңыз - пайдаланушыларға Қазақстан тарихын қызықты әрі танымдық түрде үйрету.
@@ -15,8 +19,9 @@ const CHAT_SYSTEM_INSTRUCTION = `Сіз - "Qazaqstan Quiz Assistant" атты к
 6. Сөйлесу контекстін сақтаңыз.
 7. Қазақстан тарихына қатысы жоқ сұрақтарға әдепті түрде жауап беруден бас тартып, тарих тақырыбына оралуды ұсыныңыз.`;
 
-export async function* chatWithAIStream(message: string, history: any[]) {
+export async function* chatWithAIStream(message: string, history: any[], apiKey?: string) {
   const model = "gemini-3.1-flash-lite-preview";
+  const ai = getAI(apiKey);
   
   const chat = ai.chats.create({
     model,
@@ -37,8 +42,9 @@ export async function* chatWithAIStream(message: string, history: any[]) {
   }
 }
 
-export async function chatWithAI(message: string, history: any[]): Promise<string> {
+export async function chatWithAI(message: string, history: any[], apiKey?: string): Promise<string> {
   const model = "gemini-3.1-flash-lite-preview";
+  const ai = getAI(apiKey);
   
   const response = await ai.models.generateContent({
     model,
@@ -55,8 +61,9 @@ export async function chatWithAI(message: string, history: any[]): Promise<strin
   return response.text || "Кешіріңіз, жауап бере алмадым.";
 }
 
-export async function generateCategory(prompt: string, existingCategoryCount: number): Promise<{ category: Category, questions: Question[] }> {
+export async function generateCategory(prompt: string, existingCategoryCount: number, apiKey?: string): Promise<{ category: Category, questions: Question[] }> {
   const model = "gemini-3.1-flash-lite-preview";
+  const ai = getAI(apiKey);
   
   const systemInstruction = `You are a professional quiz creator for a Kazakh History tournament. 
   Your task is to generate a new quiz category and exactly 18 questions for it (6 questions for 10 points, 6 for 20 points, and 6 for 30 points).

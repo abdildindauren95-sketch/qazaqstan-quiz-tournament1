@@ -473,6 +473,18 @@ export default function App() {
                   </div>
                 )}
                 <button 
+                  onClick={async () => { 
+                    if(window.confirm('Аккаунтты ауыстыруды растайсыз ба?')) {
+                      await logout();
+                      setAuthModalOpen(true);
+                    }
+                  }} 
+                  className="p-2 text-[var(--text3)] hover:text-[var(--gold)]" 
+                  title="Switch Account"
+                >
+                  <UserIcon size={18} />
+                </button>
+                <button 
                   onClick={async () => { if(window.confirm('Шығуды растайсыз ба?')) await logout(); }} 
                   className="p-2 text-[var(--text3)] hover:text-red-400" 
                   title="Logout"
